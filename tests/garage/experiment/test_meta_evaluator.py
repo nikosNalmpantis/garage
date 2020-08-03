@@ -78,9 +78,7 @@ def test_meta_evaluator():
         algo = OptimalActionInference(env=env,
                                       max_episode_length=max_episode_length)
         trainer.setup(algo, env)
-        meta_eval = MetaEvaluator(test_task_sampler=tasks,
-                                  max_episode_length=max_episode_length,
-                                  n_test_tasks=10)
+        meta_eval = MetaEvaluator(test_task_sampler=tasks, n_test_tasks=10)
         log_file = tempfile.NamedTemporaryFile()
         csv_output = CsvOutput(log_file.name)
         logger.add_output(csv_output)
@@ -140,7 +138,6 @@ def test_pickle_meta_evaluator():
                            snapshot_mode='last',
                            snapshot_gap=1))
         meta_eval = MetaEvaluator(test_task_sampler=tasks,
-                                  max_episode_length=max_episode_length,
                                   n_test_tasks=10,
                                   n_exploration_eps=n_eps)
         policy = RandomPolicy(env.spec.action_space)
@@ -167,7 +164,6 @@ def test_meta_evaluator_with_tf():
                               snapshot_gap=1)
         with TFTrainer(ctxt) as trainer:
             meta_eval = MetaEvaluator(test_task_sampler=tasks,
-                                      max_episode_length=max_episode_length,
                                       n_test_tasks=10,
                                       n_exploration_eps=n_eps)
             policy = GaussianMLPPolicy(env.spec)

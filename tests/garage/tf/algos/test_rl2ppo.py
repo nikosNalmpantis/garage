@@ -45,8 +45,9 @@ class TestRL2PPO(TfGraphTestCase):
         self.max_episode_length = 100
         self.inner_max_episode_length = (self.max_episode_length *
                                          self.episode_per_task)
-        self.tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-            normalize(GymEnv(HalfCheetahDirEnv()))))
+        self.tasks = task_sampler.SetTaskSampler(
+            HalfCheetahDirEnv,
+            wrapper=lambda env, _: RL2Env(normalize(GymEnv(env))))
         self.env_spec = RL2Env(
             normalize(
                 GymEnv(HalfCheetahDirEnv(),
@@ -88,12 +89,10 @@ class TestRL2PPO(TfGraphTestCase):
 
     def test_rl2_ppo_pendulum_meta_test(self):
         with TFTrainer(snapshot_config, sess=self.sess) as trainer:
-            meta_evaluator = MetaEvaluator(
-                test_task_sampler=self.tasks,
-                n_exploration_eps=10,
-                n_test_episodes=10,
-                max_episode_length=self.max_episode_length,
-                n_test_tasks=1)
+            meta_evaluator = MetaEvaluator(test_task_sampler=self.tasks,
+                                           n_exploration_eps=10,
+                                           n_test_episodes=10,
+                                           n_test_tasks=1)
 
             algo = RL2PPO(meta_batch_size=self.meta_batch_size,
                           task_sampler=self.tasks,

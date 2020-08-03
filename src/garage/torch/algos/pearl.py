@@ -42,7 +42,6 @@ class PEARL(MetaRLAlgorithm):
         qf (torch.nn.Module): Q-function.
         vf (torch.nn.Module): Value function.
         num_train_tasks (int): Number of tasks for training.
-        num_test_tasks (int): Number of tasks for testing.
         latent_dim (int): Size of latent context vector.
         encoder_hidden_sizes (list[int]): Output dimension of dense layer(s) of
             the context encoder.
@@ -81,7 +80,6 @@ class PEARL(MetaRLAlgorithm):
         embedding_mini_batch_size (int): Number of transitions in mini context
             batch; should be same as embedding_batch_size for non-recurrent
             encoder.
-        max_episode_length (int): Maximum episode length.
         discount (float): RL discount factor.
         replay_buffer_size (int): Maximum samples in replay buffer.
         reward_scale (int): Reward scale.
@@ -97,7 +95,6 @@ class PEARL(MetaRLAlgorithm):
                  qf,
                  vf,
                  num_train_tasks,
-                 num_test_tasks,
                  latent_dim,
                  encoder_hidden_sizes,
                  test_env_sampler,
@@ -125,7 +122,6 @@ class PEARL(MetaRLAlgorithm):
                  batch_size=1024,
                  embedding_batch_size=1024,
                  embedding_mini_batch_size=1024,
-                 max_episode_length=1000,
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
@@ -136,7 +132,6 @@ class PEARL(MetaRLAlgorithm):
         self._qf2 = copy.deepcopy(qf)
         self._vf = vf
         self._num_train_tasks = num_train_tasks
-        self._num_test_tasks = num_test_tasks
         self._latent_dim = latent_dim
 
         self._policy_mean_reg_coeff = policy_mean_reg_coeff
@@ -157,23 +152,23 @@ class PEARL(MetaRLAlgorithm):
         self._batch_size = batch_size
         self._embedding_batch_size = embedding_batch_size
         self._embedding_mini_batch_size = embedding_mini_batch_size
-        self.max_episode_length = max_episode_length
         self._discount = discount
         self._replay_buffer_size = replay_buffer_size
         self._reward_scale = reward_scale
         self._update_post_train = update_post_train
         self._task_idx = None
+        self._single_env = env[0]()
+        self.max_episode_length = self._single_env.spec.max_episode_length
 
         self._is_resuming = False
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                        max_episode_length=max_episode_length,
                                         worker_class=PEARLWorker,
-                                        worker_args=worker_args,
-                                        n_test_tasks=num_test_tasks)
+                                        worker_args=worker_args)
 
-        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder')
+        encoder_spec = self.get_env_spec(self._single_env, latent_dim,
+                                         'encoder')
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         context_encoder = encoder_class(input_dim=encoder_in_dim,
@@ -762,6 +757,4 @@ class PEARLWorker(DefaultWorker):
         self.start_episode()
         while not self.step_episode():
             pass
-        self._agent_infos['context'] = [self.agent.z.detach().cpu().numpy()
-                                        ] * self._max_episode_length
         return self.collect_episode()

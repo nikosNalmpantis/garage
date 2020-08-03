@@ -3,8 +3,7 @@ import pytest
 import torch
 
 from garage.envs import GymEnv, normalize
-from garage.experiment import deterministic, MetaEvaluator
-from garage.experiment.task_sampler import SetTaskSampler
+from garage.experiment import deterministic, MetaEvaluator, SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch.algos import MAMLVPG
 from garage.torch.policies import GaussianMLPPolicy
@@ -37,6 +36,8 @@ class TestMAMLVPG:
         self.env = normalize(GymEnv(HalfCheetahDirEnv(),
                                     max_episode_length=100),
                              expected_action_scale=10.)
+        self.task_sampler = SetTaskSampler(lambda: normalize(
+            GymEnv(HalfCheetahDirEnv()), expected_action_scale=10.))
         self.policy = GaussianMLPPolicy(
             env_spec=self.env.spec,
             hidden_sizes=(64, 64),
@@ -61,13 +62,13 @@ class TestMAMLVPG:
             GymEnv(HalfCheetahDirEnv()), expected_action_scale=10.))
 
         meta_evaluator = MetaEvaluator(test_task_sampler=task_sampler,
-                                       max_episode_length=max_episode_length,
                                        n_test_tasks=1,
                                        n_test_episodes=10)
 
         trainer = Trainer(snapshot_config)
         algo = MAMLVPG(env=self.env,
                        policy=self.policy,
+                       task_sampler=self.task_sampler,
                        value_function=self.value_function,
                        meta_batch_size=5,
                        discount=0.99,

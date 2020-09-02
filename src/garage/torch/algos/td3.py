@@ -7,8 +7,7 @@ import torch
 import torch.nn.functional as F
 
 from garage import _Default, log_performance, make_optimizer
-from garage.misc import tensor_utils
-from garage.np import obtain_evaluation_episodes
+from garage import obtain_evaluation_episodes
 from garage.np.algos import RLAlgorithm
 from garage.sampler import FragmentWorker, LocalSampler
 from garage.torch import (dict_np_to_torch, global_device, set_gpu_mode,

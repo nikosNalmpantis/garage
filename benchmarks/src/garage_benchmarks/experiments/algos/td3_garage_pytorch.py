@@ -1,12 +1,12 @@
 """A regression test for automatic benchmarking garage-Pytorch-TD3."""
-import gym
 import torch
 from torch.nn import functional as F
 
 from garage import wrap_experiment
-from garage.envs import GarageEnv, normalize
+from garage.envs import GymEnv, normalize
 from garage.experiment import deterministic, LocalTFRunner
 from garage.np.exploration_policies import AddGaussianNoise
+from garage.np.policies import UniformRandomPolicy
 from garage.replay_buffer import PathBuffer
 from garage.torch.algos import TD3
 from garage.torch.policies import DeterministicMLPPolicy
@@ -18,10 +18,11 @@ hyper_parameters = {
     'policy_hidden_sizes': [256, 256],
     'qf_hidden_sizes': [256, 256],
     'n_epochs': 250,
-    'steps_per_epoch': 120,
+    'steps_per_epoch': 40,
     'batch_size': 100,
-    'start_steps': 1000,
-    'grad_steps_per_env_step': 1,
+    'start_steps': 10000,
+    'update_after': 1000,
+    'grad_steps_per_env_step': 50,
     'discount': 0.99,
     'target_update_tau': 0.005,
     'replay_buffer_size': int(1e6),
@@ -48,7 +49,7 @@ def td3_garage_pytorch(ctxt, env_id, seed):
     deterministic.set_seed(seed)
 
     with LocalTFRunner(ctxt) as runner:
-        env = GarageEnv(normalize(gym.make(env_id)))
+        env = normalize(GymEnv(env_id))
 
         policy = DeterministicMLPPolicy(
             env_spec=env.spec,
@@ -61,6 +62,8 @@ def td3_garage_pytorch(ctxt, env_id, seed):
             policy,
             max_sigma=hyper_parameters['sigma'],
             min_sigma=hyper_parameters['sigma'])
+
+        uniform_random_policy = UniformRandomPolicy(env.spec)
 
         qf1 = ContinuousMLPQFunction(
             env_spec=env.spec,
@@ -80,13 +83,15 @@ def td3_garage_pytorch(ctxt, env_id, seed):
                   qf1=qf1,
                   qf2=qf2,
                   exploration_policy=exploration_policy,
+                  uniform_random_policy=uniform_random_policy,
                   replay_buffer=replay_buffer,
                   steps_per_epoch=hyper_parameters['steps_per_epoch'],
                   policy_lr=hyper_parameters['policy_lr'],
                   qf_lr=hyper_parameters['qf_lr'],
                   target_update_tau=hyper_parameters['target_update_tau'],
                   discount=hyper_parameters['discount'],
-                  grad_steps_per_env_step=hyper_parameters['grad_steps_per_env_step'],
+                  grad_steps_per_env_step=hyper_parameters[
+                      'grad_steps_per_env_step'],
                   start_steps=hyper_parameters['start_steps'],
                   min_buffer_size=hyper_parameters['min_buffer_size'],
                   buffer_batch_size=hyper_parameters['buffer_batch_size'],

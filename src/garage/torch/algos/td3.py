@@ -6,9 +6,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from garage import _Default, log_performance, make_optimizer
-from garage.np import obtain_evaluation_episodes
+from garage.np import (_Default, log_performance, make_optimizer,
+                       obtain_evaluation_episodes)
 from garage.np.algos import RLAlgorithm
+from garage.replay_buffer import PathBuffer
 from garage.sampler import FragmentWorker, LocalSampler
 from garage.torch import (dict_np_to_torch, global_device, set_gpu_mode,
                           torch_to_np)
@@ -25,10 +26,9 @@ class TD3(RLAlgorithm):
         qf1 (garage.torch.q_functions.QFunction): Q function (critic network).
         qf2 (garage.torch.q_functions.QFunction): Q function (critic network).
         replay_buffer (ReplayBuffer): Replay buffer.
+        replay_buffer_size (int): Size of the replay buffer
         exploration_policy (garage.np.exploration_policies.ExplorationPolicy):
                 Exploration strategy.
-        uniform_random_policy (garage.np.policies.UniformRandomPolicy):
-                Uniform random strategy of selecting actions in the env.
         target_update_tau (float): Interpolation parameter for doing the
             soft target update.
         discount (float): Discount factor (gamma) for the cumulative return.
@@ -62,10 +62,11 @@ class TD3(RLAlgorithm):
         num_evaluation_episodes (int): The number of evaluation
             trajectories used for computing eval stats at the end of every
             epoch.
-        start_steps (int): The number of steps for warming up before
+         start_steps (int): The number of steps for warming up before
              selecting actions according to policy.
         update_after (int): The number of steps to perform before policy
             is updated.
+
 
     """
 
@@ -85,6 +86,7 @@ class TD3(RLAlgorithm):
         reward_scaling=1.,
         update_actor_interval=2,
         buffer_batch_size=64,
+        replay_buffer_size=1e6,
         min_buffer_size=1e4,
         exploration_noise=0.1,
         policy_noise=0.2,
@@ -111,6 +113,7 @@ class TD3(RLAlgorithm):
         self._policy_noise = policy_noise
         self._policy_noise_clip = policy_noise_clip
         self._clip_return = clip_return
+        self._replay_buffer_size = replay_buffer_size
         self._min_buffer_size = min_buffer_size
         self._buffer_batch_size = buffer_batch_size
         self._grad_steps_per_env_step = grad_steps_per_env_step
@@ -159,12 +162,6 @@ class TD3(RLAlgorithm):
         """
         data = self.__dict__.copy()
         del data['_replay_buffer']
-        del data['policy']
-        del data['_qf_1']
-        del data['_qf_2']
-        del data['_target_policy']
-        del data['_target_qf_1']
-        del data['_target_qf_2']
         return data
 
     def __setstate__(self, state):
@@ -175,13 +172,8 @@ class TD3(RLAlgorithm):
 
         """
         self.__dict__.update(state)
-        self._replay_buffer = self._replay_buffer
-        self.policy = self.policy
-        self._qf_1 = self._qf_1
-        self._qf_2 = self._qf_2
-        self._target_policy = self._target_policy
-        self._target_qf_1 = self._target_qf_1
-        self._target_qf_2 = self._target_qf_2
+        self._replay_buffers = PathBuffer(
+            capacity_in_transitions=self._replay_buffer_size)
 
     def _get_action(self, action, noise_scale):
         """Select action based on policy.
@@ -246,7 +238,7 @@ class TD3(RLAlgorithm):
                                                    prefix='Evaluation')
                 runner.step_itr += 1
 
-        return np.mean(last_returns)
+        return np.mean(last_returns) if last_returns else 0
 
     def _train_once(self, itr):
         """Perform one iteration of training.

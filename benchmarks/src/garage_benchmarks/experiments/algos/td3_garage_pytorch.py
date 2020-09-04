@@ -20,7 +20,7 @@ hyper_parameters = {
     'n_epochs': 250,
     'steps_per_epoch': 40,
     'batch_size': 100,
-    'start_steps': 10000,
+    'start_steps': 1000,
     'update_after': 1000,
     'grad_steps_per_env_step': 50,
     'discount': 0.99,
@@ -34,7 +34,7 @@ hyper_parameters = {
 }
 
 
-@wrap_experiment(snapshot_mode='none')
+@wrap_experiment(snapshot_mode='last')
 def td3_garage_pytorch(ctxt, env_id, seed):
     """Create garage TensorFlow TD3 model and training.
 

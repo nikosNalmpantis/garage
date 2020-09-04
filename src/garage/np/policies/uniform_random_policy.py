@@ -12,9 +12,10 @@ class UniformRandomPolicy(Policy):
 
     """
 
-    def __init__(self,
-                 env_spec,
-                 ):
+    def __init__(
+        self,
+        env_spec,
+    ):
         assert isinstance(env_spec.action_space, gym.spaces.Box)
         assert len(env_spec.action_space.shape) == 1
         self._env_spec = env_spec
@@ -56,4 +57,5 @@ class UniformRandomPolicy(Policy):
             List[dict]: Arbitrary policy state information (agent_info).
 
         """
-        return [self._env_spec.action_space.sample() for obs in observations], dict()
+        return [self._env_spec.action_space.sample()
+                for obs in observations], dict()

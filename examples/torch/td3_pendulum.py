@@ -16,7 +16,6 @@ from garage.torch.policies import DeterministicMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
-
 @wrap_experiment(snapshot_mode='last')
 def td3_pendulum(ctxt=None, seed=1):
     """Train TD3 with InvertedDoublePendulum-v2 environment.
@@ -38,9 +37,9 @@ def td3_pendulum(ctxt=None, seed=1):
                                     output_nonlinearity=torch.tanh)
 
     exploration_policy = AddGaussianNoise(env.spec,
-                                              policy,
-                                              max_sigma=0.1,
-                                              min_sigma=0.1)
+                                          policy,
+                                          max_sigma=0.1,
+                                          min_sigma=0.1)
 
     qf1 = ContinuousMLPQFunction(env_spec=env.spec,
                                  hidden_sizes=[256, 256],

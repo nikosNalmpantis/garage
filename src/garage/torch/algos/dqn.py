@@ -1,10 +1,10 @@
 """This modules creates a DDPG model in PyTorch."""
+import collections
 import copy
 
 from dowel import logger, tabular
 import numpy as np
 import torch
-import collections
 import torch.nn.functional as F
 
 from garage import _Default, log_performance, make_optimizer

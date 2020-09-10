@@ -48,7 +48,7 @@ hyperparams = dict(
 @click.command()
 @click.option('--seed', default=1)
 @wrap_experiment(snapshot_mode='last', snapshot_gap=3)
-def dqn_pong(ctxt=None, seed=24, **kwargs):
+def dqn_breakout(ctxt=None, seed=24, **kwargs):
     """Train DQN with PongNoFrameskip-v4 environment.
 
     Args:
@@ -59,7 +59,7 @@ def dqn_pong(ctxt=None, seed=24, **kwargs):
 
     """
 
-    env = gym.make('PongNoFrameskip-v4')
+    env = gym.make('BreakoutNoFrameskip-v4')
     env = Noop(env, noop_max=30)
     env = MaxAndSkip(env, skip=4)
     env = EpisodicLife(env)
@@ -125,4 +125,4 @@ def dqn_pong(ctxt=None, seed=24, **kwargs):
     runner.train(n_epochs=n_epochs, batch_size=sampler_batch_size)
 
 
-dqn_pong()
+dqn_breakout()
